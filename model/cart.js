@@ -2,24 +2,15 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const CartSchema = new Schema({
-  value: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  label: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  checked: {
-    type: Boolean,
-    required: true,
-  },
+  quantity: { type : Number, required: true},
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true},
+  user:{ type: Schema.Types.ObjectId, ref: 'User', required: true},
+  // size: { type: Schema.Types.Mixed },
+  // color: { type: Schema.Types.Mixed },
 });
 // Define a virtual property for the id
 CartSchema.virtual("id").get(function () {
-  return this.id;
+  return this._id;
 });
 CartSchema.set("toJSON", {
   virtuals: true,
@@ -28,7 +19,7 @@ CartSchema.set("toJSON", {
     delete ret._id;
   },
 });
-const Cart = mongoose.model("Cart", CartSchema);
+const Cart = mongoose.model("Cart", CartSchema,'cart');
 
 export default Cart;
 //     {

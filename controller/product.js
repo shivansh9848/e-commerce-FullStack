@@ -15,7 +15,7 @@ export const fetchProductByID = async (req, res) => {
   const id = req.params.id;
   const product=Product.findById(id);
   try {
-    console.log("pass", product);
+    // console.log("pass", product);
     res.status(200).json(await product);
   } catch (err) {
     console.log("error", err);
@@ -27,7 +27,7 @@ export const updateProduct = async (req, res) => {
   const id = req.params.id;
   const product=Product.findByIdAndUpdate(id, req.body,{ new: true });
   try {
-    console.log("pass", product);
+    // console.log("pass", product);
     res.status(200).json(await product);
   } catch (err) {
     console.log("error", err);
@@ -56,6 +56,10 @@ export const fetchAllProducts = async (req, res) => {
     query = query
     .skip(req.query._limit * (req.query._page - 1))
     .limit(req.query._limit);
+  }
+  else {
+    query = query
+    .limit(10);
   }
   try {
     const totalProducts=await count.count();

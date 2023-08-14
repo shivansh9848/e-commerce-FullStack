@@ -1,45 +1,23 @@
-import fs from 'fs';
+import User from "../model/user.js";
 
-const data = JSON.parse(fs.readFileSync('./data.json', 'utf-8'))
-const users=data.users
-
-//create
-export const createUser = (req, res) => {
-    (users).push(req.body)
-    res.json(req.body).sendStatus(201)
-}
-// getAll
-export const getAllUsers = (req, res) => {
-    // console.log(req.params)
-    res.json(users)
-}
-//get
-export const getUser = (req, res) => {
-    const id = req.params.id;
-    res.json((users).find((curr) => curr.id == id))
-}
-//replace
-export const replaceUser = (req, res) => {
-    const id = +req.params.id;
-    const idx = (users).findIndex((curr) => curr.id == id)
-    users.splice(idx, 1, { ...users[idx], ...req.body })
-    res.json(req.body)
-}
+export const fetchLoggedInUser = async (req, res) => {
+  const id = req.params.id;
+  const user = User.findById(id,'email id address');
+  try {
+    res.status(200).json(await user);
+  } catch (err) {
+    console.log("error", err);
+    res.status(400).json(err);
+  }
+};
 //update
-export const updateUser = (req, res) => {
-    const id = +req.params.id;
-    const obj = req.body;
-    const idx = (users).findIndex((curr) => curr.id == id)
-    users.splice(idx, 1, { ...obj, id: id })
-    res.json(req.body)
-}
-//delete
-export const deleteUser = (req, res) => {
-    const id = req.params.id;
-    // console.log(id)
-    // console.log(users)
-    const idx = (users).findIndex((curr) => curr.id == id);
-    const oldObj = users[idx];
-    (users).splice(idx, 1)
-    res.json(oldObj)
-}
+export const updateUser = async (req, res) => {
+  const id = req.params.id;
+  const user = User.findByIdAndUpdate(id, req.body, { new: true });
+  try {
+    res.status(200).json(await user);
+  } catch (err) {
+    console.log("error", err);
+    res.status(400).json(err);
+  }
+};
