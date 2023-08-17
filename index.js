@@ -1,6 +1,9 @@
 //To delete a particular key : value pair froma all documents of mongodb collection
 // db.collection_name.updateMany({}, { $unset : { description : 1} })
 
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import mongoose from "mongoose";
 import morgan from "morgan";
@@ -16,12 +19,11 @@ import passport from "passport";
 import session from "express-session";
 import User from "./model/user.js";
 import crypto from "crypto";
-import jsonwebtoken from 'jsonwebtoken'
-var token = jwt.sign({ foo: "bar" }, "shhhhh");
+import jwt from "jsonwebtoken";
+
 // const LocalStrategy = require("passport-local").Strategy;
 import { Strategy as LocalStrategy } from "passport-local"; // Change to ES6 import
-import { Strategy as JwtStrategy } from "passport-jwt"; // Change to ES6 import
-import { Strategy as ExtractJwt } from "passport-jwt"; // Change to ES6 import
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt"; // Change to ES6 import
 import { isAuth, sanatizeUser } from "./services/common.js";
 
 const App = express();
@@ -61,24 +63,32 @@ App.use(
 );
 App.use(express.json());
 
-App.use("/products", isAuth, productRouter);
-App.use("/categories", categoryRouter);
-App.use("/brands", brandRouter);
-App.use("/users", userRouter);
+App.use("/products", isAuth(), productRouter);
+App.use("/categories", isAuth(), categoryRouter);
+App.use("/brands", isAuth(), brandRouter);
+App.use("/users", isAuth(), userRouter);
 App.use("/auth", authRouter);
-App.use("/cart", cartRouter);
-App.use("/orders", orderRouter);
+App.use("/cart", isAuth(), cartRouter);
+App.use("/orders", isAuth(), orderRouter);
+
+var opts = {};
+opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.secretOrKey = process.env.JWT_SECRET_KEY;
 passport.use(
+  "local",
   new LocalStrategy(
     {
-      usernameField: "email", // This indicates the field for the username in the request
-      passwordField: "password", // This indicates the field for the password in the request
+      usernameField: "email",
+      passwordField: "password",
     },
     async function (email, password, done) {
-      9;
-      // const email = req.body.email;
       try {
         const user = await User.findOne({ email });
+        if (!user) {
+          return done(null, false, { message: "Invalid Credentials" });
+        }
+
+        // Inside the LocalStrategy callback
         crypto.pbkdf2(
           password,
           user.salt,
@@ -86,34 +96,46 @@ passport.use(
           32,
           "sha256",
           function (err, hashedPassword) {
-            if (user && crypto.timingSafeEqual(user.password, hashedPassword))
-              done(null, sanatizeUser(user));
-            else done(null, false, { message: "Invalid Credentials" });
+            if (err) {
+              return done(err);
+            }
+            if (crypto.timingSafeEqual(user.password, hashedPassword)) {
+              const token = jwt.sign(
+                sanatizeUser(user),
+                process.env.JWT_SECRET_KEY,
+                { expiresIn: "1m" } // Added the expiresIn option here
+              );
+              return done(null, token);
+            } else {
+              return done(null, false, { message: "Invalid Credentials" });
+            }
           }
         );
       } catch (err) {
         console.log("error", err);
-        done(err);
+        return done(err);
       }
     }
   )
 );
+
 passport.use(
   "jwt",
-  new JwtStrategy(opts, function (jwt_payload, done) {
-    User.findOne({ id: jwt_payload.sub }, function (err, user) {
-      if (err) {
-        return done(err, false);
-      }
+  new JwtStrategy(opts, async function (jwt_payload, done) {
+    try {
+      const user = await User.findById(jwt_payload.id);
       if (user) {
-        return done(null, user);
+        return done(null, sanatizeUser(user));
       } else {
         return done(null, false);
-        // or you could create a new account
       }
-    });
+    } catch (err) {
+      console.log("error", err);
+      return done(err, false);
+    }
   })
 );
+
 //creates session variable req.user on being called
 passport.serializeUser(function (user, cb) {
   console.log("serialize", user);

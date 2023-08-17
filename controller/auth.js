@@ -1,6 +1,8 @@
 import User from "../model/user.js";
 import crypto from "crypto";
 import { sanatizeUser } from "../services/common.js";
+import jwt from "jsonwebtoken";
+
 //create
 export const createUser = (req, res) => {
   try {
@@ -14,17 +16,19 @@ export const createUser = (req, res) => {
       "sha256",
       async function (err, hashedPassword) {
         const user = new User({ ...req.body, password: hashedPassword, salt });
-        const doc = await user.save();
-        req.login(user, (err) => {
-          if (err) res.status(400).json(err);
-          else res.status(201).json(sanatizeUser(doc))
-        });
-        res.status(200).json(sanatizeUser(doc));
+          const doc = await user.save();
+          req.login(sanatizeUser(doc), (err) => {
+            if (err) res.status(400).json(err);
+            else {
+              const token = jwt.sign(sanatizeUser(doc), process.env.JWT_SECRET_KEY);
+              res.status(201).json(token);
+            }
+          });
       }
     );
   } catch (err) {
     console.log("error", err);
-    res.status(400).json(err);
+    res.json(err);
   }
 };
 
@@ -34,8 +38,8 @@ export const loginUser = async (req, res) => {
   //  res.json({status:"success"})
 };
 export const CheckUser = async (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({ status: "success" });
+  if (req.user) {
+    res.json({ status: "success", user: req.user });
   } else {
     res.status(401).json({ status: "unauthorized" });
   }
