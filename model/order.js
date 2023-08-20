@@ -27,6 +27,7 @@ const OrderSchema = new Schema({
     required: true,
     enum: ["pending", "delivered", "dispatched", "cancelled"],
   },
+  paymentStatus: { type: String, default: "pending" },
 });
 const virtualId = OrderSchema.virtual("id");
 virtualId.get(function () {

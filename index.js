@@ -22,6 +22,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import stripeModule from "stripe";
+import Order from "./model/order.js";
 
 // const LocalStrategy = require("passport-local").Strategy;
 import { Strategy as LocalStrategy } from "passport-local";
@@ -37,7 +38,7 @@ const endpointSecret = process.env.WEB_HOOK_SECRET;
 App.post(
   "/webhook",
   express.raw({ type: "application/json" }),
-  (request, response) => {
+  async (request, response) => {
     const sig = request.headers["stripe-signature"];
 
     let event;
@@ -53,6 +54,12 @@ App.post(
     switch (event.type) {
       case "payment_intent.succeeded":
         const paymentIntentSucceeded = event.data.object;
+        const order =await Order.findById(
+          paymentIntentSucceeded.metadata.orderId
+        );
+        order.paymentStatus = 'received';
+        await order.save();
+
         // Then define and call a function to handle the event payment_intent.succeeded
         break;
       // ... handle other event types
