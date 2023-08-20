@@ -1,7 +1,7 @@
 import Order from "../model/order.js";
 
 export const fetchLoggedInUsersOrders = async (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.user.id;
   const orderItems = Order.find({ user: userId });
 // console.log("x",orderItems)
   try {
@@ -14,7 +14,6 @@ export const fetchLoggedInUsersOrders = async (req, res) => {
 
 export const fetchAllOrders = async (req, res) => {
   const orderItems = Order.find();
-
   try {
     res.status(200).json(await orderItems);
   } catch (err) {
@@ -23,8 +22,10 @@ export const fetchAllOrders = async (req, res) => {
   }
 };
 export const createOrder = async (req, res) => {
+  const userId = req.user.id;
+
   try {
-    const orderItem = await new Order(req.body).save(); // Await the save operation
+    const orderItem = await new Order({...req.body,user:userId}).save(); // Await the save operation
     const populatedOrderItem = await orderItem.populate("items"); // Populate the 'product' field
 
     res.status(200).json(populatedOrderItem); // Respond with the populated order item

@@ -1,8 +1,8 @@
 import User from "../model/user.js";
 
 export const fetchLoggedInUser = async (req, res) => {
-  const id = req.params.id;
-  const user = User.findById(id,'email id address');
+  const id = req.user.id;
+  const user = User.findById(id,'email id address role');
   try {
     res.status(200).json(await user);
   } catch (err) {

@@ -20,29 +20,55 @@ import session from "express-session";
 import User from "./model/user.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import path, { dirname } from "path";
+import cookieParser from "cookie-parser";
+import stripeModule from "stripe";
 
 // const LocalStrategy = require("passport-local").Strategy;
-import { Strategy as LocalStrategy } from "passport-local"; // Change to ES6 import
-import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt"; // Change to ES6 import
-import { isAuth, sanatizeUser } from "./services/common.js";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as JwtStrategy } from "passport-jwt";
+import { isAuth, sanatizeUser, cookieExtractor } from "./services/common.js";
+import { URL } from "url";
 
 const App = express();
-const port = 8000;
+//Web-Hook
+const endpointSecret = process.env.WEB_HOOK_SECRET;
 
-// Define a route to handle GET requests to the root URL
-App.get("/", (req, res) => {
-  res.send("Hell, World! This is a basic Express server");
-});
-(async function main() {
-  try {
-    const result = await mongoose.connect(
-      "mongodb+srv://imt2021092:tK5K0iTh8mhXmChg@cluster0.38xejdd.mongodb.net/e-commerce"
-    );
-    console.log("Database Connected");
-  } catch (err) {
-    console.log(err);
+App.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  (request, response) => {
+    const sig = request.headers["stripe-signature"];
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+    } catch (err) {
+      response.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        const paymentIntentSucceeded = event.data.object;
+        // Then define and call a function to handle the event payment_intent.succeeded
+        break;
+      // ... handle other event types
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    response.send();
   }
-})();
+);
+// ...
+
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename);
+App.use(express.static(path.resolve(__dirname,"build")));
 
 App.use(
   session({
@@ -61,6 +87,7 @@ App.use(
     exposedHeaders: ["X-Total-Count"],
   })
 );
+App.use(cookieParser());
 App.use(express.json());
 
 App.use("/products", isAuth(), productRouter);
@@ -68,11 +95,17 @@ App.use("/categories", isAuth(), categoryRouter);
 App.use("/brands", isAuth(), brandRouter);
 App.use("/users", isAuth(), userRouter);
 App.use("/auth", authRouter);
-App.use("/cart", isAuth(), cartRouter);
-App.use("/orders", isAuth(), orderRouter);
+App.use("/api/cart", isAuth(), cartRouter);
+App.use("/api/orders", isAuth(), orderRouter);
+
+// Place this catch-all route after serving static files
+// Serve the HTML file for all routes
+App.get("*", (req, res) => {
+  res.sendFile(path.resolve("build", "index.html"));
+});
 
 var opts = {};
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.jwtFromRequest = opts.jwtFromRequest = cookieExtractor;
 opts.secretOrKey = process.env.JWT_SECRET_KEY;
 passport.use(
   "local",
@@ -101,11 +134,11 @@ passport.use(
             }
             if (crypto.timingSafeEqual(user.password, hashedPassword)) {
               const token = jwt.sign(
-                sanatizeUser(user),
-                process.env.JWT_SECRET_KEY,
-                { expiresIn: "1m" } // Added the expiresIn option here
+                sanatizeUser(sanatizeUser(user)),
+                process.env.JWT_SECRET_KEY
+                // { expiresIn: "100000h" }
               );
-              return done(null, token);
+              return done(null, { id: user.id, role: user.role });
             } else {
               return done(null, false, { message: "Invalid Credentials" });
             }
@@ -139,6 +172,7 @@ passport.use(
 //creates session variable req.user on being called
 passport.serializeUser(function (user, cb) {
   console.log("serialize", user);
+
   process.nextTick(function () {
     cb(null, { id: user.id });
   });
@@ -152,7 +186,43 @@ passport.deserializeUser(async function (user, cb) {
   });
 });
 
+//Payments
+const stripe = stripeModule(process.env.STRIPE_SECRET_KEY);
+
+const calculateOrderAmount = (items) => {
+  // Replace this constant with a calculation of the order's amount
+  // Calculate the order total on the server to prevent
+  // people from directly manipulating the amount on the client
+  return 1400;
+};
+
+App.post("/create-payment-intent", async (req, res) => {
+  const { items } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: calculateOrderAmount(items),
+    currency: "inr",
+    // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
+
+(async function main() {
+  try {
+    const result = await mongoose.connect(process.env.MONGO_DB_URL);
+    console.log("Database Connected");
+  } catch (err) {
+    console.log(err);
+  }
+})();
 // Start the server and listen on the specified port
-App.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+App.listen(process.env.PORT, () => {
+  console.log(`Server is running on http://localhost:${process.env.PORT}`);
 });

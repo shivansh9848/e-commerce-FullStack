@@ -16,14 +16,23 @@ export const createUser = (req, res) => {
       "sha256",
       async function (err, hashedPassword) {
         const user = new User({ ...req.body, password: hashedPassword, salt });
-          const doc = await user.save();
-          req.login(sanatizeUser(doc), (err) => {
-            if (err) res.status(400).json(err);
-            else {
-              const token = jwt.sign(sanatizeUser(doc), process.env.JWT_SECRET_KEY);
-              res.status(201).json(token);
-            }
-          });
+        const doc = await user.save();
+        req.login(sanatizeUser(doc), (err) => {
+          if (err) res.status(400).json(err);
+          else {
+            const token = jwt.sign(
+              sanatizeUser(doc),
+              process.env.JWT_SECRET_KEY
+            );
+            res
+              .cookie("jwt", token, {
+                // expires: new Date(Date.now() + 3600000000000000),
+                httpOnly: true,
+              })
+              .status(201)
+              .json({id:doc.id, role:doc.role});
+          }
+        });
       }
     );
   } catch (err) {
@@ -34,12 +43,19 @@ export const createUser = (req, res) => {
 
 //login
 export const loginUser = async (req, res) => {
-  res.json(req.user);
-  //  res.json({status:"success"})
+  const user = req.user;
+  res
+    .cookie('jwt', user.token, {
+      expires: new Date(Date.now() + 360000000),
+      httpOnly: true,
+    })
+    .status(201)
+    .json({ id: user.id, role: user.role });
 };
+
 export const CheckUser = async (req, res) => {
   if (req.user) {
-    res.json({ status: "success", user: req.user });
+    res.json(req.user );
   } else {
     res.status(401).json({ status: "unauthorized" });
   }

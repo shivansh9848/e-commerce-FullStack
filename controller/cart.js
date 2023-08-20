@@ -1,7 +1,7 @@
 import Cart from "../model/cart.js";
 
 export const fetchItemsByUserID = async (req, res) => {
-  const userId = req.query.user;
+  const userId = req.user.id;
   const cartItems = Cart.find({ user: userId });
 
   try {
@@ -12,8 +12,9 @@ export const fetchItemsByUserID = async (req, res) => {
   }
 };
 export const addToCart = async (req, res) => {
+  const userId = req.user.id;
   try {
-    const cartItem = await new Cart(req.body).save(); // Await the save operation
+    const cartItem = await new Cart({...req.body,user:userId}).save(); // Await the save operation
     const populatedCartItem = await cartItem.populate("product"); // Populate the 'product' field
 
     res.status(200).json(populatedCartItem); // Respond with the populated cart item
