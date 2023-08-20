@@ -137,7 +137,7 @@ passport.use(
                 process.env.JWT_SECRET_KEY
                 // { expiresIn: "100000h" }
               );
-              return done(null, { id: user.id, role: user.role });
+              return done(null, { id: user.id, role: user.role,token });
             } else {
               return done(null, false, { message: "Invalid Credentials" });
             }
