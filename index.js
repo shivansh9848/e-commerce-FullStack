@@ -167,7 +167,6 @@ passport.use(
     }
   })
 );
-
 //creates session variable req.user on being called
 passport.serializeUser(function (user, cb) {
   console.log("serialize", user);
