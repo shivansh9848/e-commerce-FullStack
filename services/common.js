@@ -7,9 +7,9 @@ export const sanatizeUser=(user)=>{
 }
 export const cookieExtractor = function(req) {
   var token = null;
-  if (req && req.cookies) {
-      token = req.cookies['jwt'];
-  }
-  // token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0ZGMzZWZlMWRmYTUyZTFmZTQ5ZDI4ZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTY5MjM0NTUxMH0.X0p5JnNcAOu676f3r4ZSHu3nQxDyIkqoOWtyf20CRTE"
+  // if (req && req.cookies) {
+  //     token = req.cookies['jwt'];
+  // }
+  token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0ZGMzZWZlMWRmYTUyZTFmZTQ5ZDI4ZSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTY5MjM0NTUxMH0.X0p5JnNcAOu676f3r4ZSHu3nQxDyIkqoOWtyf20CRTE"
   return token;
 };

@@ -20,7 +20,6 @@ import session from "express-session";
 import User from "./model/user.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import path, { dirname } from "path";
 import cookieParser from "cookie-parser";
 import stripeModule from "stripe";
 
@@ -28,7 +27,8 @@ import stripeModule from "stripe";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JwtStrategy } from "passport-jwt";
 import { isAuth, sanatizeUser, cookieExtractor } from "./services/common.js";
-import { URL } from "url";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 
 const App = express();
 //Web-Hook
@@ -66,9 +66,8 @@ App.post(
 );
 // ...
 
-const __filename = new URL(import.meta.url).pathname;
-const __dirname = path.dirname(__filename);
-App.use(express.static(path.resolve(__dirname,"build")));
+const __dirname = dirname(fileURLToPath(import.meta.url));
+App.use(express.static(path.resolve(__dirname, "build")));
 
 App.use(
   session({
