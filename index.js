@@ -218,5 +218,5 @@ App.post("/create-payment-intent", async (req, res) => {
 })();
 // Start the server and listen on the specified port
 App.listen(process.env.PORT, () => {
-  console.log(`Server is running on http://localhost:${process.env.PORT}`);
+  console.log(`Server is running on vercel`);
 });
