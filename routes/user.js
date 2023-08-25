@@ -5,5 +5,5 @@ import {fetchLoggedInUser,updateUser } from '../controller/user.js'
 userRouter
     .get("/own", fetchLoggedInUser)
     .patch("/:id", updateUser)
-
+    
 export { userRouter}

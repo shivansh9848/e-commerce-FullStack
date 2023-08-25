@@ -42,7 +42,6 @@ App.post(
     const sig = request.headers["stripe-signature"];
 
     let event;
-
     try {
       event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
     } catch (err) {
@@ -54,10 +53,10 @@ App.post(
     switch (event.type) {
       case "payment_intent.succeeded":
         const paymentIntentSucceeded = event.data.object;
-        const order =await Order.findById(
+        const order = await Order.findById(
           paymentIntentSucceeded.metadata.orderId
         );
-        order.paymentStatus = 'received';
+        order.paymentStatus = "received";
         await order.save();
 
         // Then define and call a function to handle the event payment_intent.succeeded
@@ -141,10 +140,10 @@ passport.use(
             if (crypto.timingSafeEqual(user.password, hashedPassword)) {
               const token = jwt.sign(
                 sanatizeUser(sanatizeUser(user)),
-                process.env.JWT_SECRET_KEY
-                // { expiresIn: "100000h" }
+                process.env.JWT_SECRET_KEY,
+                { expiresIn: "1h" }
               );
-              return done(null, { id: user.id, role: user.role,token });
+              return done(null, { id: user.id, role: user.role, token });
             } else {
               return done(null, false, { message: "Invalid Credentials" });
             }
@@ -195,8 +194,8 @@ passport.deserializeUser(async function (user, cb) {
 const stripe = stripeModule(process.env.STRIPE_SECRET_KEY);
 
 App.post("/create-payment-intent", async (req, res) => {
-  console.log("X",req.body)
-  const {  totalAmount,orderId } = req.body;
+  console.log("X", req.body);
+  const { totalAmount, orderId } = req.body;
   // Create a PaymentIntent with the order amount and currency
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount * 100,
@@ -205,9 +204,9 @@ App.post("/create-payment-intent", async (req, res) => {
     automatic_payment_methods: {
       enabled: true,
     },
-    metadata:{
-      orderId
-    }
+    metadata: {
+      orderId,
+    },
   });
 
   res.send({

@@ -25,6 +25,7 @@ const UserSchema = new Schema(
     salt: {
       type: Buffer,
     },
+    resetPasswordToken: { type: String, default: "" },
   },
   { timestamps: true }
 );

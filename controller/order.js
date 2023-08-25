@@ -1,5 +1,6 @@
 import Order from "../model/order.js";
-
+import User from "../model/user.js";
+import { invoiceTemplate ,sendMail} from "../services/common.js";
 export const fetchLoggedInUsersOrders = async (req, res) => {
   const userId = req.user.id;
   const orderItems = Order.find({ user: userId });
@@ -23,11 +24,13 @@ export const fetchAllOrders = async (req, res) => {
 };
 export const createOrder = async (req, res) => {
   const userId = req.user.id;
-
+console.log("X",req.body)
   try {
     const orderItem = await new Order({...req.body,user:userId}).save(); // Await the save operation
+    const user=await User.findById(userId);
     const populatedOrderItem = await orderItem.populate("items"); // Populate the 'product' field
-
+    console.log("user",user.email)
+    await sendMail({to:user.email,subject:'Order Received',html:invoiceTemplate(orderItem) })
     res.status(200).json(populatedOrderItem); // Respond with the populated order item
   } catch (err) {
     console.error("Error:", err);
